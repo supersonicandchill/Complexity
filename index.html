@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Irreducible Complexity — People Decoder</title>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #080c12; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useMemo } = React;
+
+// ─── STORAGE ──────────────────────────────────────────────────────────────────
+function load(key, fb) { try { const v=localStorage.getItem(key); return v?JSON.parse(v):fb; } catch { return fb; } }
+function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
+let _c = Date.now();
+function uid() { return "x"+(++_c).toString(36); }
+
+// ─── DANNY CANCINO QUOTES (pulled directly from the book) ─────────────────────
+const QUOTES = [
+  { text:"The world doesn't happen to the driven. The driven happen to the world.", trait:"D" },
+  { text:"Once you get your 'why' then you get your 'buy'.", trait:"D" },
+  { text:"Motivation cannot be forced. It can only be cultivated.", trait:"D" },
+  { text:"Warren had the drive to drive.", trait:"D" },
+  { text:"Don't let today's limits define your tomorrow.", trait:"A" },
+  { text:"Knowing is the enemy of learning.", trait:"A" },
+  { text:"It's better to ask a stupid question and be laughed at than to die.", trait:"A" },
+  { text:"Increasing your competence will increase your confidence.", trait:"A" },
+  { text:"If you have to talk about your game, then your game isn't speaking loudly enough.", trait:"H" },
+  { text:"Let who they are make you a better version of who you are.", trait:"H" },
+  { text:"You are a piece, you are not the whole.", trait:"H" },
+  { text:"By simply being around giants, I become a little taller each day.", trait:"H" },
+  { text:"Pride tells lies. Humility allows vulnerability.", trait:"H" },
+  { text:"Start using 'we' when talking about accomplishments and 'me' when talking about failures.", trait:"H" },
+  { text:"Be coachable.", trait:null },
+  { text:"These three characteristics always seem to be there in success and missing in failure.", trait:null },
+];
+
+// ─── FRAMEWORK ────────────────────────────────────────────────────────────────
+const TRAITS = {
+  D: {
+    key:"D", label:"Drive", icon:"🔥", tagline:"The will to get better",
+    quote:"The world doesn't happen to the driven. The driven happen to the world.",
+    bookDesc:"Drive is intrinsic — it doesn't rely on anything external. It is self-starting. Someone with drive doesn't need to be told when there is work to be done. They ask 'Can you teach me how to do this?' not 'Can you do this for me?' Drive is tied to your 'why' — once you find your why, you find your buy-in.",
+    color:"#f97316", colorGlow:"#f9731640", bg:"#140a02", bgMid:"#1f1005",
+    border:"#7c3311", borderHi:"#c2440f", text:"#fdba74",
+    hasIt:["Grabs the shovel without being asked","Asks 'How do I do this?' not 'Can you do this?'","Still working when everyone else has checked out","Sets goals and relentlessly works toward them","Sees obstacles as opportunities, not dead ends","Has a clear personal 'why' that drives them"],
+    lacksIt:["Waits to be told what to do","Content to just clock in and clock out","Calls go-getters 'suck-ups' to feel better about their own pace","Needs constant external motivation","Rests on past accomplishments","Gives lip service to work but avoids it"],
+    archetype:"The Cathedral Builder",
+    archetypeDesc:"Has their eyes on something higher than just the task. Doesn't lay bricks — builds a cathedral for God.",
+    bringOut:[
+      { title:"Connect them to their 'why'", body:"Ask them what success looks like to them. Help them craft a personal mission statement. Danny's brick layer #3 wasn't just laying bricks — he was building a cathedral. Drive can't be forced. It can only be cultivated once someone finds purpose." },
+      { title:"Give them real ownership", body:"Driven people are killed by micromanagement. Hand them a problem and get out of the way. Let them decide how to solve it. Autonomy fuels intrinsic motivation far more than any bonus ever could." },
+      { title:"Show them their Ikigai", body:"Help them find where what they love, what they're good at, what the world needs, and what they can be paid for all intersect. That intersection is where drive becomes automatic and self-sustaining." },
+      { title:"Point at the empty shovel", body:"Sometimes drive just needs a nudge. Literally point at the undone work. Say 'here's what needs doing' and step back. Driven people just need to see the opportunity — they'll take it from there." },
+      { title:"Stop labeling the go-getters", body:"Resist calling driven people 'suck-ups.' That label lets everyone else stay lazy. Recognize drive when you see it and honor it — even if it makes you uncomfortable about your own pace." },
+    ],
+    workWith:"Give them real problems to own. Skip the hand-holding. Bring them a challenge, not a checklist. Check in on their 'why' — a driven person without purpose can burn out or veer sideways. Celebrate wins but keep pointing at the next mountain.",
+    needsFromLeader:"Purpose + autonomy + a worthy challenge. They don't need cheerleaders — they need a cathedral worth building.",
+    watchOut:"Drive without humility = Tony Stark or House, M.D. Brilliant and impossible to be around. Drive without ability = lots of effort, lots of mistakes, still worth your patience.",
+  },
+  A: {
+    key:"A", label:"Ability", icon:"⚡", tagline:"The capacity to improve",
+    quote:"Don't let today's limits define your tomorrow.",
+    bookDesc:"Ability is the potential to get better — your capacity for growth. It's not just raw talent; it's neuroplasticity in action. The human brain can be stretched and grown. The question isn't whether you can do it now, but whether you're willing to grow into it. Don't let today's limits define your tomorrow.",
+    color:"#3b82f6", colorGlow:"#3b82f640", bg:"#020814", bgMid:"#050f1e",
+    border:"#1e3a8a", borderHi:"#2563eb", text:"#93c5fd",
+    hasIt:["Actively seeks feedback and applies it fast","Keeps a beginner's mindset — doesn't pretend to already know","Not afraid to fail in public while learning","Listens twice as much as they talk","Has a mentor or actively mentors others","Turns their car into a classroom"],
+    lacksIt:["Immediately says 'I know' when someone tries to teach them","Knowledge a mile wide, inch deep — the Dunning-Kruger trap","Only practices what they're already good at","Too proud to ask 'stupid' questions","Doesn't read or seek education outside required training","Communicates poorly — assumes others understand them"],
+    archetype:"The University of YouTube Graduate",
+    archetypeDesc:"Endlessly curious. Learns from anywhere. Makes their car a classroom and the internet their campus.",
+    bringOut:[
+      { title:"Teach them — then let them teach", body:"The best way to lock in ability is to make someone explain it to someone else. Once they've learned a skill, put them in a teaching role. It deepens their understanding and builds confidence simultaneously." },
+      { title:"Normalize asking stupid questions", body:"As Kyle Scherer said in the book: 'It's better to ask a stupid question and be laughed at than to die.' Create an environment where asking is celebrated. An unasked question in the fire service can get someone killed." },
+      { title:"Pair them with a mentor", body:"Craig Groeschel: 'Show me your friends and I'll show you your future.' Match them with someone 2-3 steps ahead of them who has all three traits. Informal mentoring beats formal programs every single time." },
+      { title:"Assign stretch tasks", body:"Give them work that's just beyond their current ceiling. Not so far they drown — far enough that growth is required. Competence builds confidence, which builds thirst for more competence. It snowballs." },
+      { title:"Point them to the U of Y", body:"Help them find podcasts, audiobooks, Blinkist. Turn their commute into education. The access to knowledge today is unprecedented. Help them take advantage of it." },
+    ],
+    workWith:"Don't assume they know how to do something — show them, then ask them to show you back. Encourage questions. Give specific, constructive feedback quickly. Let them fail small while you're watching rather than big when you're not.",
+    needsFromLeader:"Clear feedback + learning opportunities + permission to fail. They need someone who shows them the ceiling isn't where they think it is.",
+    watchOut:"Ability without drive = Jim Halpert for 7 seasons. The talent's there, they just haven't found their 'why' yet. Ability without humility = Shawn Spencer — brilliant, frustrating, allergic to being coached.",
+  },
+  H: {
+    key:"H", label:"Humility", icon:"🙏", tagline:"The knowledge that you need to",
+    quote:"If you have to talk about your game, then your game isn't speaking loudly enough.",
+    bookDesc:"Humility is freedom from arrogance — not a lack of confidence. Without it, you have no reason to improve because you don't believe you need to. Pride tells lies. Humility allows vulnerability which suppresses the need to lie. A person without humility ends up alone — people don't want to come alongside someone who thinks they've already arrived.",
+    color:"#22c55e", colorGlow:"#22c55e40", bg:"#010e04", bgMid:"#031a09",
+    border:"#15803d", borderHi:"#16a34a", text:"#86efac",
+    hasIt:["Uses 'we' for wins and 'I' for failures","Owns mistakes without making excuses","Lets their work speak — doesn't broadcast their resume","Accepts criticism and lets it marinate before reacting","Asks questions even when they think they know the answer","Builds others up instead of positioning themselves"],
+    lacksIt:["Turns every conversation back to themselves","Main character syndrome — the world exists for them","Deflects blame, rarely owns mistakes publicly","Name-drops their accomplishments constantly","Dismisses feedback instead of sitting with it","Can't say 'I was wrong' or 'I don't know'"],
+    archetype:"The 'Not Elite' T-Shirt Wearer",
+    archetypeDesc:"Like Bryce Harper — hears a hard truth, eats it for lunch, and gets straight to work on the swing.",
+    bringOut:[
+      { title:"Model it yourself first", body:"Humble leadership is contagious. Research confirms humility spreads through teams. When you own your mistakes publicly, say 'I was wrong,' and credit others — people follow. They can't stay arrogant next to a leader who's genuinely humble." },
+      { title:"Teach Danny's criticism filter", body:"Is it true and changeable? Change it. True but unchangeable? Let it go. Simply untrue? Let it go. Teach people to sit with feedback for 24 hours before reacting. 'Let it marinate' is the phrase to use." },
+      { title:"Put them near someone bigger", body:"Danny says 'by simply being around giants, I become a little taller each day.' Put a proud person alongside someone who is genuinely excellent. Proximity to real greatness adjusts perspective faster than any lecture ever will." },
+      { title:"Assign the 'we' habit", body:"Challenge them: for 30 days, any team win is 'we' in conversation, and any failure is 'I.' It's a practice in humility that quietly rewires how they see themselves relative to the people around them." },
+      { title:"Surface the eye rolls", body:"Privately and kindly let them know: 'When you lead with your accomplishments, I notice people checking out.' Don't shame — inform. 'Your game is good. Let it speak.' Sometimes people just don't know they're doing it." },
+    ],
+    workWith:"Don't challenge their ego head-on — it backfires every time. Redirect their energy outward: 'What can the team accomplish through this?' Give them chances to be the person who builds others up. Recognition for selfless behavior reinforces it.",
+    needsFromLeader:"Honest private feedback + visible modeling of humility from above + a team culture where owning your mistakes is celebrated, not punished.",
+    watchOut:"Humility without drive = Shrek or Jim Halpert pre-Season 5. Humble and capable and going nowhere until they find their why. Humility without ability = Patrick Star — endearing, but you'll be doing most of the heavy lifting.",
+  },
+};
+
+const COMBOS = [
+  { id:"DAH", has:["D","A","H"],
+    label:"All Three", icon:"🏆", bookRef:"The Full Equation",
+    desc:"This is the whole point of the book. The irreducible complexity — all three working together. Warren the London Cab Driver: 3 years of 6am maps, dad's garage until 5pm, drawing routes until 10pm. Then doing it again the next day. For the love of the craft. This is who you champion for promotion and invest in hardest.",
+    color:"#f0b429", bg:"#110d00", border:"#7c5e0a", borderHi:"#b8860b",
+    how:"Get out of their way. Give them a worthy challenge. Invest in them heavily — they will multiply it back into the team. This is the person Danny wrote the book hoping to describe.",
+    character:"Warren the London Cab Driver" },
+  { id:"DH", has:["D","H"], lacks:["A"],
+    label:"Drive + Humility", icon:"💪", bookRef:"Chapter 4 — Forrest Gump",
+    desc:"The 'aww bless his heart but man is he a hard worker' person. Will make mistakes and feel terrible about it — and probably make them again. But they show up every single time. Their humility makes them endearing and naturally attracts people who fill in their ability gaps. Be patient.",
+    color:"#f97316", bg:"#140a02", border:"#7c3311", borderHi:"#c2440f",
+    how:"Be patient and specific. Give clear, step-by-step instruction. Pair them with high-ability teammates. Celebrate their persistence loudly — it is rare and genuinely valuable. Focus all development on skill-building.",
+    character:"Forrest Gump / Buddy the Elf / SpongeBob" },
+  { id:"DA", has:["D","A"], lacks:["H"],
+    label:"Drive + Ability", icon:"⚡", bookRef:"Chapter 4 — Tony Stark",
+    desc:"Highly capable, highly productive, and exhausting to be around. Will talk about themselves more than anyone is comfortable with. Can produce incredible results but slowly isolates through arrogance. They need to look around the room and notice the eye rolls before it costs them the team.",
+    color:"#ef4444", bg:"#120202", border:"#7f1d1d", borderHi:"#dc2626",
+    how:"Don't challenge their ego directly — it backfires. Redirect it outward. Give them leadership responsibility over others. Recognize selfless behavior loudly. Ask 'what's best for the team?' consistently. Model humility relentlessly.",
+    character:"Tony Stark / House M.D. / Bruce Wayne" },
+  { id:"AH", has:["A","H"], lacks:["D"],
+    label:"Ability + Humility", icon:"🛋️", bookRef:"Chapter 4 — Jim Halpert",
+    desc:"All the talent in the world, humble enough to learn, but won't pick up the shovel unless you hand it to them. Needs a consistent kick in the butt. Easy to be around, quietly frustrating to lead. Find their 'why' and watch them transform — Jim Halpert didn't become a great salesman until he had something worth selling for.",
+    color:"#a855f7", bg:"#0b0114", border:"#6b21a8", borderHi:"#9333ea",
+    how:"Find their Ikigai. Help them write a mission statement. Connect their daily work to something bigger than the task. Give them a challenge they actually care about. They have everything they need — they just need their why.",
+    character:"Jim Halpert / Shrek / Star-Lord" },
+  { id:"D_only", has:["D"], lacks:["A","H"],
+    label:"Drive Only", icon:"💨", bookRef:"Chapter 4 — Michael Scott",
+    desc:"Arrogant and going hard in the wrong direction. Doesn't know what they don't know and genuinely cannot be told. Bought themselves the 'World's Best Boss' mug. Offered a whole class to go to college, then bought them batteries for laptops they didn't have. Well-meaning chaos at full speed.",
+    color:"#f59e0b", bg:"#110800", border:"#92400e", borderHi:"#d97706",
+    how:"Start with humility — nothing else helps until they can receive feedback. Ask questions that surface blind spots: 'What do you think the team needs right now?' Let peers gently correct them. Protect the team from their impact while you work the long game.",
+    character:"Michael Scott / Ricky Bobby / Johnny Bravo" },
+  { id:"H_only", has:["H"], lacks:["D","A"],
+    label:"Humility Only", icon:"🐻", bookRef:"Chapter 4 — Winnie the Pooh",
+    desc:"Humble, sweet, endearing, and going absolutely nowhere fast. Self-deprecating humor is a shield that hides the fact that there's no drive to improve — and they may know deep down they don't have capacity for the role. Still occasionally says something profound without realizing it.",
+    color:"#22c55e", bg:"#010e04", border:"#15803d", borderHi:"#16a34a",
+    how:"Find what they CAN do and let them do it with excellence. The world needs a good Steve Kerr. Don't put them in roles that require what they can't provide — but don't discard them either. Help them find the right seat on the bus.",
+    character:"Patrick Star / Homer Simpson / Winnie the Pooh" },
+  { id:"A_only", has:["A"], lacks:["D","H"],
+    label:"Ability Only", icon:"🎭", bookRef:"Chapter 4 — Ferris Bueller",
+    desc:"Will frustrate the crap out of you. Tries to coast on talent alone. Arrogantly reminds you how good they are while using their gifts to avoid actual work. Could be extraordinary — chooses to be merely impressive instead. Hard work and hustle beat talent every single day of the week.",
+    color:"#3b82f6", bg:"#020814", border:"#1e3a8a", borderHi:"#2563eb",
+    how:"Hard feedback, delivered clearly and kindly. 'Your talent is not in question. Your heart is.' Give them work they genuinely cannot skate through on talent alone — something that requires grit and real teamwork to finish.",
+    character:"Ferris Bueller / Shawn Spencer / Ryan Howard" },
+];
+
+// ─── DESIGN SYSTEM ─────────────────────────────────────────────────────────────
+const GLOBAL_CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;0,900;1,700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap');
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; }
+
+@keyframes fadeUp   { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeIn   { from { opacity:0; } to { opacity:1; } }
+@keyframes slideIn  { from { opacity:0; transform:translateX(-10px); } to { opacity:1; transform:translateX(0); } }
+@keyframes shimmer  { 0% { background-position:-200% 0; } 100% { background-position:200% 0; } }
+@keyframes pulseAura {
+  0%,100% { box-shadow: 0 0 0 1px var(--aura-border,#333), 0 0 20px var(--aura-glow,#0000); }
+  50%      { box-shadow: 0 0 0 1px var(--aura-border,#333), 0 0 40px var(--aura-glow,#0000); }
+}
+@keyframes scoreReveal { from { transform:scaleX(0); } to { transform:scaleX(1); } }
+
+.fade-up  { animation: fadeUp  .25s cubic-bezier(.22,1,.36,1) both; }
+.fade-in  { animation: fadeIn  .2s ease both; }
+.slide-in { animation: slideIn .2s cubic-bezier(.22,1,.36,1) both; }
+.aura     { animation: pulseAura 3s ease-in-out infinite; }
+
+::-webkit-scrollbar       { width:4px; height:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:#252525; border-radius:4px; }
+
+/* Noise grain overlay */
+body::before {
+  content:'';
+  position:fixed; inset:0; pointer-events:none; z-index:9999;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  opacity: 0.4;
+}
+`;
+
+const C = {
+  bg0:"#080c12", bg1:"#0e1420", bg2:"#141c2a", bg3:"#1c2638", bg4:"#243044",
+  border:"#1e2d42", borderHi:"#2a3d58", borderBright:"#3a5070",
+  text:"#f2f7fd", textSub:"#9db5cc", textMuted:"#6a8faa",
+  gold:"#f0b429", goldDim:"#7c5e0a", goldBg:"#120d02", goldBorder:"#4a3808",
+  green:"#34d399", greenDim:"#022c1e", greenBorder:"#065f46",
+  red:"#fb7185", redBorder:"#9f1239",
+};
+
+const S = {
+  app:  { fontFamily:"'DM Sans',system-ui,sans-serif", background:C.bg0, minHeight:"100vh", color:C.text, fontSize:14 },
+  hdr:  { background:`linear-gradient(180deg,${C.bg2} 0%,${C.bg1} 100%)`,
+          borderBottom:`1px solid ${C.border}`, padding:"0 24px",
+          display:"flex", alignItems:"center", gap:16, height:68,
+          position:"sticky", top:0, zIndex:300,
+          boxShadow:`0 1px 0 ${C.border}, 0 4px 32px rgba(0,0,0,.6)` },
+  card: { background:C.bg1, border:`1px solid ${C.border}`, borderRadius:14, padding:18 },
+  input:{ background:C.bg0, border:`1px solid ${C.border}`, borderRadius:9, color:C.text,
+          padding:"10px 14px", fontSize:13, outline:"none", width:"100%",
+          fontFamily:"inherit", transition:"border-color .15s, box-shadow .15s" },
+  lbl:  { fontSize:11, fontWeight:700, color:C.textSub, textTransform:"uppercase",
+          letterSpacing:1.2, display:"block", marginBottom:8 },
+};
+
+function GlobalStyles() { return <style dangerouslySetInnerHTML={{__html:GLOBAL_CSS}}/>; }
+
+// ─── BUTTONS (prominent, glowing, beautiful) ──────────────────────────────────
+function Btn({ children, onClick, variant="secondary", size="md", disabled=false, style:ex={} }) {
+  const [hov, setHov] = useState(false);
+  const V = {
+    primary: {
+      bg: hov ? "linear-gradient(135deg,#f0b429,#d4960f)" : "linear-gradient(135deg,#d4960f,#b07a08)",
+      color:"#0a0800", border:"#f0b429",
+      shadow: hov ? "0 6px 28px #f0b42970, 0 0 0 1px #f0b429, inset 0 1px 0 #ffffff40"
+                  : "0 4px 20px #f0b42950, 0 0 0 1px #c49010, inset 0 1px 0 #ffffff30",
+      transform: hov ? "translateY(-2px)" : "translateY(0)",
+    },
+    danger: {
+      bg: hov ? "linear-gradient(135deg,#dc2626,#b91c1c)" : "linear-gradient(135deg,#991b1b,#7f1d1d)",
+      color:"#fecaca", border:"#dc2626",
+      shadow: hov ? "0 4px 20px #dc262650, 0 0 0 1px #dc2626" : "0 2px 10px #dc262630, 0 0 0 1px #7f1d1d",
+      transform: hov ? "translateY(-1px)" : "translateY(0)",
+    },
+    success: {
+      bg: hov ? "linear-gradient(135deg,#16a34a,#15803d)" : "linear-gradient(135deg,#15803d,#166534)",
+      color:"#dcfce7", border:"#22c55e",
+      shadow: hov ? "0 4px 20px #22c55e50, 0 0 0 1px #22c55e" : "0 2px 10px #22c55e30, 0 0 0 1px #15803d",
+      transform: hov ? "translateY(-1px)" : "translateY(0)",
+    },
+    secondary: {
+      bg: hov ? C.bg3 : C.bg2,
+      color: C.textSub, border: C.borderHi,
+      shadow: hov ? `0 4px 14px rgba(0,0,0,.4), 0 0 0 1px ${C.borderHi}` : `0 2px 6px rgba(0,0,0,.3), 0 0 0 1px ${C.border}`,
+      transform: hov ? "translateY(-1px)" : "translateY(0)",
+    },
+    ghost: {
+      bg:"transparent", color:C.textSub, border:C.border,
+      shadow:"none", transform:"translateY(0)",
+    },
+  };
+  const v = V[variant]||V.secondary;
+  const pad = size==="sm"?"6px 14px":size==="lg"?"14px 32px":"10px 20px";
+  const fs  = size==="sm"?11:size==="lg"?15:13;
+  return (
+    <button onClick={onClick} disabled={disabled}
+      onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
+      style={{ background:v.bg, color:v.color, border:`1px solid ${v.border}`, borderRadius:9,
+        padding:pad, fontSize:fs, fontWeight:800, cursor:disabled?"not-allowed":"pointer",
+        display:"inline-flex", alignItems:"center", gap:6, whiteSpace:"nowrap",
+        boxShadow:v.shadow, opacity:disabled?.4:1, letterSpacing:.3,
+        fontFamily:"inherit", transition:"all .15s cubic-bezier(.22,1,.36,1)",
+        transform:disabled?"none":v.transform, ...ex }}>
+      {children}
+    </button>
+  );
+}
+
+// ─── QUOTE STRIP ──────────────────────────────────────────────────────────────
+function QuoteStrip({ traitKey }) {
+  const pool = traitKey ? QUOTES.filter(q=>q.trait===traitKey||q.trait===null) : QUOTES;
+  const q = pool[Math.floor(Math.random() * pool.length)];
+  const t = traitKey ? TRAITS[traitKey] : null;
+  const color = t?.color || C.gold;
+  const bg    = t?.bg    || C.goldBg;
+  const border= t?.border|| C.goldBorder;
+  return (
+    <div style={{ background:`linear-gradient(135deg,${bg},${C.bg0})`,
+        border:`1px solid ${border}`, borderLeft:`3px solid ${color}`,
+        borderRadius:10, padding:"12px 16px",
+        display:"flex", gap:10, alignItems:"flex-start" }}>
+      <span style={{ color, fontSize:20, lineHeight:1, flexShrink:0, marginTop:1 }}>"</span>
+      <div>
+        <div style={{ fontSize:13, color, fontStyle:"italic", lineHeight:1.6, fontWeight:500 }}>
+          {q.text}
+        </div>
+        <div style={{ fontSize:12, color:C.textMuted, marginTop:5, fontWeight:700,
+            letterSpacing:.8, textTransform:"uppercase" }}>
+          — Danny Cancino, The Irreducible Complexity for Success
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── MODAL ────────────────────────────────────────────────────────────────────
+function Modal({ title, onClose, children, width=540 }) {
+  return (
+    <div className="fade-in"
+      style={{ position:"fixed", inset:0, background:"rgba(4,8,16,.92)", zIndex:500,
+        display:"flex", alignItems:"center", justifyContent:"center", padding:16,
+        backdropFilter:"blur(8px)" }}
+      onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="fade-up"
+        style={{ background:`linear-gradient(160deg,${C.bg2} 0%,${C.bg1} 100%)`,
+          border:`1px solid ${C.borderHi}`, borderRadius:16,
+          width:"100%", maxWidth:width, maxHeight:"92vh",
+          display:"flex", flexDirection:"column",
+          boxShadow:`0 40px 100px rgba(0,0,0,.95), 0 0 0 1px ${C.borderHi}, inset 0 1px 0 rgba(255,255,255,.04)` }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+            padding:"16px 22px", borderBottom:`1px solid ${C.border}`, flexShrink:0 }}>
+          <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:19,
+              fontWeight:800, letterSpacing:1, color:C.text }}>{title}</span>
+          <Btn onClick={onClose} variant="ghost" size="sm">✕</Btn>
+        </div>
+        <div style={{ padding:22, overflowY:"auto", flex:1 }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function Confirm({ msg, onYes, onNo, yesLabel="Confirm", yesVariant="danger" }) {
+  return (
+    <Modal title="Confirm" onClose={onNo} width={380}>
+      <p style={{ color:C.textSub, lineHeight:1.75, fontSize:14, marginBottom:22 }}>{msg}</p>
+      <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
+        <Btn onClick={onNo} variant="ghost">Cancel</Btn>
+        <Btn onClick={onYes} variant={yesVariant}>{yesLabel}</Btn>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── SCORE SYSTEM ─────────────────────────────────────────────────────────────
+const SCORE_LABELS = ["Missing","Emerging","Developing","Strong"];
+const SCORE_ICONS  = ["❌","🌱","📈","✅"];
+const SCORE_COLORS = ["#ef4444","#f59e0b","#3b82f6","#22c55e"];
+const SCORE_BGS    = ["#1a0202","#1a0e00","#020a1a","#011008"];
+
+function ScorePip({ score, size=10 }) {
+  return (
+    <span style={{ display:"inline-flex", alignItems:"center", gap:4 }}>
+      {[0,1,2,3].map(i => (
+        <span key={i} style={{ width:size, height:size, borderRadius:"50%",
+            background: i<=score ? SCORE_COLORS[score] : C.bg3,
+            border:`1px solid ${i<=score ? SCORE_COLORS[score] : C.border}`,
+            display:"inline-block", flexShrink:0,
+            boxShadow: i<=score ? `0 0 6px ${SCORE_COLORS[score]}80` : "none",
+            transition:"all .2s" }}/>
+      ))}
+    </span>
+  );
+}
+
+function ScoreBadge({ score, small }) {
+  const c = SCORE_COLORS[score]||SCORE_COLORS[0];
+  return (
+    <span style={{ background:SCORE_BGS[score]||SCORE_BGS[0], color:c,
+        border:`1px solid ${c}55`, borderRadius:6,
+        padding:small?"2px 8px":"4px 11px",
+        fontSize:small?9:11, fontWeight:800, letterSpacing:.5,
+        boxShadow:`0 0 8px ${c}20` }}>
+      {SCORE_LABELS[score]||"Unknown"}
+    </span>
+  );
+}
+
+function TraitScoreSelector({ traitKey, value, onChange }) {
+  const t = TRAITS[traitKey];
+  return (
+    <div style={{ display:"flex", gap:6 }}>
+      {SCORE_LABELS.map((lbl,i) => {
+        const sel = value===i;
+        const c   = SCORE_COLORS[i];
+        return (
+          <button key={i} onClick={()=>onChange(i)}
+            style={{ flex:1, padding:"9px 4px", borderRadius:8, cursor:"pointer",
+              fontFamily:"inherit", fontWeight:800, fontSize:11, letterSpacing:.3,
+              background: sel ? `linear-gradient(135deg,${c}30,${c}18)` : "transparent",
+              color: sel ? c : C.textMuted,
+              border:`2px solid ${sel ? c : C.border}`,
+              boxShadow: sel ? `0 0 14px ${c}40, inset 0 1px 0 ${c}20` : "none",
+              transition:"all .15s cubic-bezier(.22,1,.36,1)",
+              transform: sel ? "translateY(-1px)" : "translateY(0)" }}>
+            <span style={{fontSize:14,display:"block",marginBottom:2}}>{SCORE_ICONS[i]}</span>{lbl}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── COMBO LOGIC ──────────────────────────────────────────────────────────────
+function getCombo(scores) {
+  const has = Object.entries(scores).filter(([,v])=>v>=2).map(([k])=>k);
+  if (has.includes("D")&&has.includes("A")&&has.includes("H")) return COMBOS[0];
+  if (has.includes("D")&&has.includes("H")&&!has.includes("A")) return COMBOS[1];
+  if (has.includes("D")&&has.includes("A")&&!has.includes("H")) return COMBOS[2];
+  if (has.includes("A")&&has.includes("H")&&!has.includes("D")) return COMBOS[3];
+  if (has.includes("D")&&!has.includes("A")&&!has.includes("H")) return COMBOS[4];
+  if (has.includes("H")&&!has.includes("A")&&!has.includes("D")) return COMBOS[5];
+  if (has.includes("A")&&!has.includes("D")&&!has.includes("H")) return COMBOS[6];
+  return null;
+}
+
+// ─── PERSON CARD ──────────────────────────────────────────────────────────────
+function PersonCard({ person, onView, onEdit, onDelete }) {
+  const [hov, setHov] = useState(false);
+  const combo = getCombo(person.scores);
+  const init  = person.name.trim().split(/\s+/).map(w=>w[0]||"").slice(0,2).join("").toUpperCase();
+  const accentColor = combo?.color || C.textMuted;
+
+  return (
+    <div className="fade-up"
+      onClick={()=>onView(person)}
+      onMouseEnter={()=>setHov(true)}
+      onMouseLeave={()=>setHov(false)}
+      style={{ background: hov
+          ? `linear-gradient(160deg,${combo?.bg||C.bg2} 0%,${C.bg1} 100%)`
+          : `linear-gradient(160deg,${C.bg1} 0%,${C.bg0} 100%)`,
+        border:`1px solid ${hov ? (combo?.borderHi||C.borderHi) : (combo?.border||C.border)}`,
+        borderRadius:16, overflow:"hidden", cursor:"pointer", position:"relative",
+        boxShadow: hov
+          ? `0 12px 40px ${accentColor}25, 0 0 0 1px ${combo?.borderHi||C.borderHi}`
+          : `0 2px 14px rgba(0,0,0,.4)`,
+        transition:"all .22s cubic-bezier(.22,1,.36,1)" }}>
+
+      {/* Top accent bar — gradient across all trait colors */}
+      <div style={{ height:3,
+          background: combo
+            ? `linear-gradient(90deg,${combo.color},${combo.color}66)`
+            : `linear-gradient(90deg,${C.border},transparent)` }}/>
+
+      {/* Corner action buttons */}
+      <div style={{ position:"absolute", top:12, right:10, display:"flex", gap:5, zIndex:2,
+          opacity: hov ? 1 : 0, transition:"opacity .15s" }}
+        onClick={e=>e.stopPropagation()}>
+        <button onClick={()=>onEdit(person)}
+          style={{ background:C.bg3, border:`1px solid ${C.borderHi}`, borderRadius:6,
+            width:28, height:28, display:"flex", alignItems:"center", justifyContent:"center",
+            cursor:"pointer", color:C.textSub, fontSize:12,
+            boxShadow:"0 2px 8px rgba(0,0,0,.4)", transition:"all .12s" }}>✏</button>
+        <button onClick={()=>onDelete(person)}
+          style={{ background:"#1a0404", border:`1px solid #7f1d1d`, borderRadius:6,
+            width:28, height:28, display:"flex", alignItems:"center", justifyContent:"center",
+            cursor:"pointer", color:"#f87171", fontSize:12,
+            boxShadow:"0 2px 8px rgba(0,0,0,.4)", transition:"all .12s" }}>✕</button>
+      </div>
+
+      <div style={{ padding:"14px 16px 16px" }}>
+        {/* Avatar + name */}
+        <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:13 }}>
+          <div style={{ width:48, height:48, borderRadius:"50%", flexShrink:0,
+              background:`radial-gradient(circle at 35% 35%, ${combo?.bgMid||C.bg3}, ${combo?.bg||C.bg0})`,
+              border:`2px solid ${combo?.borderHi||C.borderHi}`,
+              display:"flex", alignItems:"center", justifyContent:"center",
+              boxShadow:`0 0 20px ${accentColor}35, inset 0 1px 0 rgba(255,255,255,.08)` }}>
+            <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900,
+                fontSize:18, color:accentColor }}>{init}</span>
+          </div>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:17,
+                letterSpacing:.4, color:C.text, whiteSpace:"nowrap",
+                overflow:"hidden", textOverflow:"ellipsis" }}>{person.name}</div>
+            {person.role && <div style={{ fontSize:11, color:C.textMuted, marginTop:2,
+                fontWeight:500 }}>{person.role}</div>}
+            <div style={{ fontSize:12, color:C.textMuted, marginTop:3 }}>
+              {person.context==="work" ? "🔥 Work" : "🏡 Personal"}
+            </div>
+          </div>
+        </div>
+
+        {/* Trait score bars */}
+        <div style={{ display:"flex", gap:6, marginBottom:12 }}>
+          {Object.entries(person.scores).map(([k,v]) => {
+            const t = TRAITS[k];
+            const c = SCORE_COLORS[v];
+            return (
+              <div key={k} style={{ flex:1, background:t.bg, border:`1px solid ${t.border}`,
+                  borderRadius:8, padding:"7px 8px", textAlign:"center" }}>
+                <div style={{ fontSize:26, marginBottom:4 }}>{t.icon}</div>
+                <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
+                    fontSize:11, color:t.color, letterSpacing:.5 }}>{t.label}</div>
+                <div style={{ marginTop:5 }}>
+                  <ScorePip score={v} size={7}/>
+                </div>
+                <div style={{ fontSize:11, color:c, fontWeight:700, marginTop:3,
+                    letterSpacing:.3 }}>{SCORE_LABELS[v]}</div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Combo badge */}
+        {combo ? (
+          <div style={{ background:`linear-gradient(135deg,${combo.bg},${C.bg0})`,
+              border:`1px solid ${combo.border}`, borderRadius:10,
+              padding:"9px 12px", display:"flex", alignItems:"center", gap:9,
+              boxShadow:`inset 0 1px 0 ${combo.borderHi}30` }}>
+            <span style={{ fontSize:26, lineHeight:1 }}>{combo.icon}</span>
+            <div>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
+                  fontSize:13, color:combo.color, letterSpacing:.5 }}>{combo.label}</div>
+              <div style={{ fontSize:12, color:C.textMuted, marginTop:1 }}>
+                {combo.character}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div style={{ background:C.bg0, border:`1px solid ${C.border}`, borderRadius:9,
+              padding:"9px 12px", fontSize:11, color:C.textMuted, fontStyle:"italic",
+              textAlign:"center" }}>
+            Score the traits above to reveal their profile
+          </div>
+        )}
+
+        {person.notes && (
+          <div style={{ marginTop:9, fontSize:11, color:C.textMuted, fontStyle:"italic",
+              overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
+              paddingTop:9, borderTop:`1px solid ${C.border}` }}>
+            📝 {person.notes}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── PERSON DETAIL MODAL ──────────────────────────────────────────────────────
+function PersonDetail({ person, onClose, onEdit }) {
+  const [tab, setTab] = useState("assess");
+  const combo = getCombo(person.scores);
+  const init  = person.name.trim().split(/\s+/).map(w=>w[0]||"").slice(0,2).join("").toUpperCase();
+  const ac    = combo?.color || C.textMuted;
+
+  const TABS = [
+    { id:"assess",  label:"📊 Profile" },
+    { id:"develop", label:"🛠 Develop" },
+    { id:"work",    label:"🤝 Lead & Work With" },
+  ];
+
+  return (
+    <Modal title="" onClose={onClose} width={620}>
+      {/* Hero header */}
+      <div style={{ margin:"-22px -22px 20px",
+          background:`linear-gradient(145deg,${combo?.bg||C.bg2} 0%,${C.bg1} 60%,${C.bg0} 100%)`,
+          borderBottom:`1px solid ${combo?.border||C.border}`,
+          padding:"22px 22px 18px", position:"relative", overflow:"hidden" }}>
+
+        {/* Subtle big letter watermark */}
+        <div style={{ position:"absolute", right:20, top:-10, fontFamily:"'Barlow Condensed',sans-serif",
+            fontWeight:900, fontSize:120, color:ac, opacity:.04, lineHeight:1, pointerEvents:"none",
+            userSelect:"none" }}>{init}</div>
+
+        <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:16 }}>
+          <div style={{ width:60, height:60, borderRadius:"50%", flexShrink:0,
+              background:`radial-gradient(circle at 35% 35%,${combo?.bgMid||C.bg3},${combo?.bg||C.bg0})`,
+              border:`2px solid ${ac}`, display:"flex", alignItems:"center",
+              justifyContent:"center", boxShadow:`0 0 28px ${ac}45` }}>
+            <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900,
+                fontSize:24, color:ac }}>{init}</span>
+          </div>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900,
+                fontSize:26, letterSpacing:.5, color:C.text, lineHeight:1 }}>{person.name}</div>
+            {person.role && <div style={{ fontSize:12, color:C.textMuted, marginTop:4 }}>{person.role}</div>}
+          </div>
+          <Btn onClick={()=>{onClose();onEdit(person);}} variant="secondary" size="sm"><span style={{fontSize:16,lineHeight:1}}>✏</span> Edit</Btn>
+        </div>
+
+        {/* Score row */}
+        <div style={{ display:"flex", gap:8, marginBottom:14 }}>
+          {Object.entries(person.scores).map(([k,v]) => {
+            const t = TRAITS[k];
+            const c = SCORE_COLORS[v];
+            return (
+              <div key={k} style={{ flex:1, background:`${t.bg}cc`, border:`1px solid ${t.border}`,
+                  borderRadius:10, padding:"9px 10px", textAlign:"center" }}>
+                <div style={{ fontSize:26, marginBottom:4 }}>{t.icon}</div>
+                <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
+                    fontSize:13, color:t.color, letterSpacing:.5 }}>{t.label}</div>
+                <div style={{ marginTop:5 }}><ScorePip score={v} size={8}/></div>
+                <div style={{ marginTop:4 }}><ScoreBadge score={v} small/></div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Combo */}
+        {combo && (
+          <div style={{ background:`linear-gradient(135deg,${combo.bg},${C.bg0}80)`,
+              border:`1px solid ${combo.borderHi}`, borderRadius:11,
+              padding:"11px 15px", display:"flex", alignItems:"center", gap:12,
+              boxShadow:`0 4px 20px ${combo.color}20` }}>
+            <span style={{ fontSize:26 }}>{combo.icon}</span>
+            <div style={{ flex:1 }}>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900,
+                  fontSize:17, color:combo.color, letterSpacing:.5 }}>{combo.label}</div>
+              <div style={{ fontSize:11, color:C.textMuted, marginTop:2 }}>
+                {combo.bookRef} — {combo.character}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display:"flex", gap:5, marginBottom:18,
+          borderBottom:`1px solid ${C.border}`, paddingBottom:14 }}>
+        {TABS.map(t => {
+          const active = tab===t.id;
+          return (
+            <button key={t.id} onClick={()=>setTab(t.id)}
+              style={{ background: active ? `linear-gradient(135deg,${C.bg3},${C.bg2})` : "transparent",
+                color: active ? C.text : C.textMuted,
+                border:`1px solid ${active?C.borderHi:"transparent"}`,
+                borderRadius:8, padding:"8px 16px", cursor:"pointer", fontFamily:"inherit",
+                fontSize:12, fontWeight:700, letterSpacing:.3,
+                boxShadow: active ? "0 2px 10px rgba(0,0,0,.3)" : "none",
+                transition:"all .15s" }}>
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ASSESS TAB */}
+      {tab==="assess" && (
+        <div className="slide-in">
+          {combo && (
+            <div style={{ background:`linear-gradient(135deg,${combo.bg},${C.bg0})`,
+                border:`1px solid ${combo.border}`, borderRadius:11,
+                padding:"14px 16px", marginBottom:18 }}>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800, fontSize:15,
+                  color:combo.color, letterSpacing:.5, marginBottom:8 }}>
+                {combo.icon} {combo.label} — What Danny's Book Says
+              </div>
+              <div style={{ fontSize:13, color:C.textSub, lineHeight:1.7 }}>{combo.desc}</div>
+            </div>
+          )}
+
+          {Object.entries(person.scores).map(([k,v]) => {
+            const t = TRAITS[k];
+            const showHas = v>=2;
+            const c = SCORE_COLORS[v];
+            return (
+              <div key={k} style={{ marginBottom:14, background:C.bg0, border:`1px solid ${t.border}`,
+                  borderRadius:11, overflow:"hidden" }}>
+                <div style={{ background:`linear-gradient(135deg,${t.bg},${C.bg0}80)`,
+                    borderBottom:`1px solid ${t.border}`, padding:"10px 15px",
+                    display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:9 }}>
+                    <span style={{ fontSize:20 }}>{t.icon}</span>
+                    <div>
+                      <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900,
+                          fontSize:16, color:t.color, letterSpacing:.5 }}>{t.label}</span>
+                      <span style={{ fontSize:11, color:C.textMuted, marginLeft:8,
+                          fontStyle:"italic" }}>"{t.tagline}"</span>
+                    </div>
+                  </div>
+                  <ScoreBadge score={v}/>
+                </div>
+                <div style={{ padding:"12px 15px" }}>
+                  <div style={{ fontSize:12, fontWeight:700, color: showHas?t.color:"#ef4444",
+                      textTransform:"uppercase", letterSpacing:1.3, marginBottom:8 }}>
+                    {showHas ? "Signs you're seeing in them ✓" : "Signs you're seeing instead ⚠"}
+                  </div>
+                  <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                    {(showHas?t.hasIt:t.lacksIt).slice(0,4).map((s,i) => (
+                      <div key={i} style={{ display:"flex", gap:9, alignItems:"flex-start",
+                          fontSize:13, color:C.textSub, lineHeight:1.5 }}>
+                        <span style={{ color:showHas?t.color:"#ef4444", fontWeight:800, flexShrink:0,
+                            fontSize:14, lineHeight:1.2 }}>{showHas?"→":"–"}</span>
+                        {s}
+                      </div>
+                    ))}
+                  </div>
+                  {/* Book quote for this trait */}
+                  <div style={{ marginTop:10 }}>
+                    <QuoteStrip traitKey={k}/>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {person.notes && (
+            <div style={{ background:C.bg0, border:`1px solid ${C.border}`, borderRadius:10,
+                padding:"12px 15px" }}>
+              <div style={{ ...S.lbl, marginBottom:6 }}>Your Notes</div>
+              <div style={{ fontSize:13, color:C.textSub, fontStyle:"italic",
+                  lineHeight:1.65 }}>{person.notes}</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* DEVELOP TAB */}
+      {tab==="develop" && (
+        <div className="slide-in">
+          <QuoteStrip/>
+          <div style={{ height:16 }}/>
+
+          {Object.entries(person.scores)
+            .sort(([,a],[,b])=>a-b)
+            .map(([k,v]) => {
+              const t = TRAITS[k];
+              const isWeak = v<=1;
+              return (
+                <div key={k} style={{ marginBottom:18 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:9, marginBottom:11 }}>
+                    <span style={{ fontSize:18 }}>{t.icon}</span>
+                    <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
+                        fontSize:16, color:isWeak?SCORE_COLORS[v]:t.color, letterSpacing:.5 }}>
+                      {t.label}
+                    </span>
+                    <ScoreBadge score={v} small/>
+                    {isWeak && (
+                      <span style={{ fontSize:12, color:"#ef4444", fontWeight:800,
+                          background:"#1a0202", border:"1px solid #7f1d1d", borderRadius:5,
+                          padding:"2px 8px", letterSpacing:.3 }}>
+                        PRIORITY
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
+                    {t.bringOut.slice(0,isWeak?5:2).map((item,i) => (
+                      <div key={i} style={{ background:isWeak
+                            ? `linear-gradient(135deg,${t.bg},${C.bg0})`
+                            : C.bg0,
+                          border:`1px solid ${isWeak?t.border:C.border}`,
+                          borderRadius:10, padding:"11px 14px",
+                          borderLeft:`3px solid ${isWeak?t.color:C.border}` }}>
+                        <div style={{ fontSize:12, fontWeight:700,
+                            color:isWeak?t.color:C.textSub, marginBottom:5 }}>{item.title}</div>
+                        <div style={{ fontSize:13, color:C.textMuted, lineHeight:1.65 }}>{item.body}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+
+          <div style={{ background:`linear-gradient(135deg,${C.goldBg},${C.bg0})`,
+              border:`1px solid ${C.goldBorder}`, borderLeft:`3px solid ${C.gold}`,
+              borderRadius:10, padding:"14px 16px" }}>
+            <div style={{ fontSize:11, fontWeight:700, color:C.goldDim, textTransform:"uppercase",
+                letterSpacing:1.5, marginBottom:6 }}>Danny's Closing Word</div>
+            <div style={{ fontSize:14, color:C.gold, fontStyle:"italic", lineHeight:1.65,
+                fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:17 }}>
+              "Motivation cannot be forced. It can only be cultivated."
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LEAD & WORK WITH TAB */}
+      {tab==="work" && (
+        <div className="slide-in">
+          {combo && (
+            <>
+              <div style={{ marginBottom:16 }}>
+                <div style={{ ...S.lbl, marginBottom:8 }}>Working With This Person</div>
+                <div style={{ background:`linear-gradient(135deg,${combo.bg},${C.bg0})`,
+                    border:`1px solid ${combo.border}`, borderRadius:11,
+                    padding:"14px 16px", fontSize:13, color:C.textSub, lineHeight:1.75,
+                    borderLeft:`3px solid ${combo.color}` }}>
+                  {combo.how}
+                </div>
+              </div>
+
+              <div style={{ marginBottom:16 }}>
+                <div style={{ ...S.lbl, marginBottom:8 }}>What They Need From You as a Leader</div>
+                <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
+                  {Object.entries(person.scores).filter(([,v])=>v>=1).map(([k])=>{
+                    const t = TRAITS[k];
+                    return (
+                      <div key={k} style={{ background:C.bg0, border:`1px solid ${t.border}`,
+                          borderRadius:10, padding:"11px 14px",
+                          display:"flex", gap:10, alignItems:"flex-start",
+                          borderLeft:`3px solid ${t.color}` }}>
+                        <span style={{ fontSize:18, flexShrink:0 }}>{t.icon}</span>
+                        <div>
+                          <div style={{ fontSize:12, fontWeight:700, color:t.color,
+                              marginBottom:4, fontFamily:"'Barlow Condensed',sans-serif",
+                              letterSpacing:.3 }}>{t.label}</div>
+                          <div style={{ fontSize:13, color:C.textMuted, lineHeight:1.6 }}>
+                            {t.needsFromLeader}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+
+          <div style={{ ...S.lbl, marginBottom:8 }}>Per-Trait Working Approach</div>
+          {Object.entries(person.scores).map(([k,v]) => {
+            const t = TRAITS[k];
+            return (
+              <div key={k} style={{ background:C.bg0, border:`1px solid ${t.border}`,
+                  borderRadius:10, padding:"12px 15px", marginBottom:9,
+                  borderLeft:`3px solid ${t.color}` }}>
+                <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:7 }}>
+                  <span style={{ fontSize:16 }}>{t.icon}</span>
+                  <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
+                      fontSize:14, color:t.color, letterSpacing:.4 }}>{t.label}</span>
+                  <ScoreBadge score={v} small/>
+                </div>
+                <div style={{ fontSize:13, color:C.textSub, lineHeight:1.65, marginBottom:9 }}>
+                  {t.workWith}
+                </div>
+                <div style={{ background:C.goldBg, border:`1px solid ${C.goldBorder}`,
+                    borderRadius:7, padding:"8px 11px", fontSize:11,
+                    color:C.gold, fontStyle:"italic", lineHeight:1.5 }}>
+                  ⚠ {t.watchOut}
+                </div>
+              </div>
+            );
+          })}
+
+          <QuoteStrip traitKey={null}/>
+        </div>
+      )}
+
+      <div style={{ display:"flex", justifyContent:"flex-end", paddingTop:18 }}>
+        <Btn onClick={onClose} variant="ghost"><span style={{fontSize:14,lineHeight:1}}>✕</span><span style={{marginLeft:3}}>Close</span></Btn>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── ADD / EDIT PERSON MODAL ──────────────────────────────────────────────────
+function PersonModal({ person, onSave, onClose }) {
+  const [name,    setName]    = useState(person.name||"");
+  const [role,    setRole]    = useState(person.role||"");
+  const [notes,   setNotes]   = useState(person.notes||"");
+  const [scores,  setScores]  = useState({...person.scores});
+  const [context, setContext] = useState(person.context||"work");
+  const combo = getCombo(scores);
+
+  function submit() {
+    if (!name.trim()) return;
+    onSave({...person, name:name.trim(), role:role.trim(), notes:notes.trim(), scores, context});
+  }
+
+  return (
+    <Modal title={person.id ? `Edit: ${person.name}` : "Add Person"} onClose={onClose} width={520}>
+      <div style={{ display:"flex", flexDirection:"column", gap:18 }}>
+
+        <div style={{ display:"flex", gap:12 }}>
+          <div style={{ flex:2 }}>
+            <label style={S.lbl}>Full Name *</label>
+            <input style={S.input} value={name} onChange={e=>setName(e.target.value)}
+              placeholder="e.g. Danny Cancino" autoFocus
+              onFocus={e=>e.target.style.borderColor=C.borderBright}
+              onBlur={e=>e.target.style.borderColor=C.border}
+              onKeyDown={e=>e.key==="Enter"&&submit()}/>
+          </div>
+          <div style={{ flex:1 }}>
+            <label style={S.lbl}>Context</label>
+            <select style={S.input} value={context} onChange={e=>setContext(e.target.value)}>
+              <option value="work">🔥 Work</option>
+              <option value="life">🏡 Personal</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label style={S.lbl}>Role / Relationship</label>
+          <input style={S.input} value={role} onChange={e=>setRole(e.target.value)}
+            placeholder="e.g. Lieutenant, Coworker, Spouse, Coach"
+            onFocus={e=>e.target.style.borderColor=C.borderBright}
+            onBlur={e=>e.target.style.borderColor=C.border}/>
+        </div>
+
+        {/* Score each trait */}
+        {Object.values(TRAITS).map(t => (
+          <div key={t.key} style={{ background:`linear-gradient(135deg,${t.bg},${C.bg0})`,
+              border:`1px solid ${t.border}`, borderRadius:12, padding:"14px 16px",
+              boxShadow:`inset 0 1px 0 ${t.borderHi}20` }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:11 }}>
+              <span style={{ fontSize:26, lineHeight:1 }}>{t.icon}</span>
+              <div style={{ flex:1 }}>
+                <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900,
+                    fontSize:16, color:t.color, letterSpacing:.5 }}>{t.label}</div>
+                <div style={{ fontSize:11, color:C.textMuted, fontStyle:"italic" }}>"{t.tagline}"</div>
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <ScorePip score={scores[t.key]} size={9}/>
+                <ScoreBadge score={scores[t.key]} small/>
+              </div>
+            </div>
+
+            {/* Quick reference */}
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:11 }}>
+              <div style={{ background:"rgba(0,0,0,.3)", borderRadius:7, padding:"8px 10px" }}>
+                <div style={{ fontSize:11, fontWeight:700, color:t.color, textTransform:"uppercase",
+                    letterSpacing:1, marginBottom:5 }}>Has It</div>
+                {t.hasIt.slice(0,2).map((s,i)=>(
+                  <div key={i} style={{ fontSize:13, color:C.textMuted, lineHeight:1.4, marginBottom:3,
+                      display:"flex", gap:5 }}>
+                    <span style={{ color:t.color }}>→</span>{s}
+                  </div>
+                ))}
+              </div>
+              <div style={{ background:"rgba(0,0,0,.3)", borderRadius:7, padding:"8px 10px" }}>
+                <div style={{ fontSize:11, fontWeight:700, color:"#ef4444", textTransform:"uppercase",
+                    letterSpacing:1, marginBottom:5 }}>Missing It</div>
+                {t.lacksIt.slice(0,2).map((s,i)=>(
+                  <div key={i} style={{ fontSize:13, color:C.textMuted, lineHeight:1.4, marginBottom:3,
+                      display:"flex", gap:5 }}>
+                    <span style={{ color:"#ef4444" }}>–</span>{s}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <TraitScoreSelector traitKey={t.key} value={scores[t.key]}
+              onChange={v=>setScores(p=>({...p,[t.key]:v}))}/>
+          </div>
+        ))}
+
+        {/* Live combo preview */}
+        {combo && (
+          <div className="fade-up"
+            style={{ background:`linear-gradient(135deg,${combo.bg},${C.bg0})`,
+              border:`1px solid ${combo.borderHi}`, borderRadius:11,
+              padding:"12px 16px", display:"flex", alignItems:"center", gap:11,
+              boxShadow:`0 4px 20px ${combo.color}20` }}>
+            <span style={{ fontSize:24 }}>{combo.icon}</span>
+            <div>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900,
+                  fontSize:16, color:combo.color, letterSpacing:.5 }}>{combo.label}</div>
+              <div style={{ fontSize:11, color:C.textMuted, marginTop:2 }}>{combo.character}</div>
+            </div>
+          </div>
+        )}
+
+        <div>
+          <label style={S.lbl}>Notes</label>
+          <textarea style={{ ...S.input, resize:"vertical", minHeight:72, lineHeight:1.55 }}
+            value={notes} onChange={e=>setNotes(e.target.value)}
+            onFocus={e=>e.target.style.borderColor=C.borderBright}
+            onBlur={e=>e.target.style.borderColor=C.border}
+            placeholder="What have you observed? Key moments, growth areas, what's worked..."/>
+        </div>
+
+        <div style={{ display:"flex", gap:10, justifyContent:"flex-end", paddingTop:4 }}>
+          <Btn onClick={onClose} variant="ghost"><span style={{fontSize:14,lineHeight:1}}>✕</span><span style={{marginLeft:3}}>Cancel</span></Btn>
+          <Btn onClick={submit} variant="primary" size="lg" disabled={!name.trim()}><span style={{fontSize:20,lineHeight:1}}>{person.id?"💾":"＋"}</span><span style={{marginLeft:4}}>{person.id ? "Save Changes" : "Add Person"}</span></Btn>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── PEOPLE TAB ───────────────────────────────────────────────────────────────
+function PeopleTab({ people, setPeople }) {
+  const [q,          setQ]          = useState("");
+  const [contextF,   setContextF]   = useState("all");
+  const [editing,    setEditing]    = useState(null);
+  const [viewing,    setViewing]    = useState(null);
+  const [delPending, setDelPending] = useState(null);
+
+  const filtered = useMemo(()=>people.filter(p=>{
+    if (q&&!p.name.toLowerCase().includes(q.toLowerCase())&&
+        !(p.role||"").toLowerCase().includes(q.toLowerCase())) return false;
+    if (contextF!=="all"&&p.context!==contextF) return false;
+    return true;
+  }),[people,q,contextF]);
+
+  function savePerson(p) {
+    const next = p.id&&people.find(x=>x.id===p.id)
+      ? people.map(x=>x.id===p.id?p:x)
+      : [...people,{...p,id:uid()}];
+    setPeople(next); setEditing(null);
+  }
+
+  function deletePerson(id) { setPeople(people.filter(p=>p.id!==id)); setDelPending(null); }
+
+  const blank = { id:"", name:"", role:"", notes:"", context:"work", scores:{D:0,A:0,H:0} };
+
+  const stats = useMemo(()=>{
+    const all3 = people.filter(p=>getCombo(p.scores)?.id==="DAH").length;
+    const weak = people.filter(p=>Object.values(p.scores).some(v=>v<=1)).length;
+    return { total:people.length, all3, weak, work:people.filter(p=>p.context==="work").length, life:people.filter(p=>p.context==="life").length };
+  },[people]);
+
+  return (
+    <div style={{ padding:18 }}>
+
+      {/* Stats hero */}
+      {people.length>0 && (
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(120px,1fr))", gap:10, marginBottom:18 }}>
+          {[
+            { label:"Total", val:stats.total, color:C.gold, sub:"people" },
+            { label:"All Three", val:stats.all3, color:SCORE_COLORS[3], sub:"full equation" },
+            { label:"Developing", val:stats.weak, color:SCORE_COLORS[1], sub:"need focus" },
+            { label:"Work", val:stats.work, color:"#f97316", sub:"colleagues" },
+            { label:"Personal", val:stats.life, color:"#a855f7", sub:"relationships" },
+          ].map((s,i)=>(
+            <div key={i} style={{ background:`linear-gradient(135deg,${C.bg1},${C.bg0})`,
+                border:`1px solid ${C.border}`, borderRadius:12, padding:"13px 15px",
+                boxShadow:"0 2px 10px rgba(0,0,0,.3)" }}>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900,
+                  fontSize:32, color:s.color, lineHeight:1 }}>{s.val}</div>
+              <div style={{ fontSize:11, fontWeight:700, color:C.text, marginTop:4 }}>{s.label}</div>
+              <div style={{ fontSize:12, color:C.textMuted, marginTop:2 }}>{s.sub}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Controls */}
+      <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap", marginBottom:16 }}>
+        <input style={{ ...S.input, width:210,
+            boxShadow:"inset 0 2px 6px rgba(0,0,0,.3)" }}
+          placeholder="Search name or role..."
+          value={q} onChange={e=>setQ(e.target.value)}
+          onFocus={e=>e.target.style.borderColor=C.borderBright}
+          onBlur={e=>e.target.style.borderColor=C.border}/>
+
+        <div style={{ display:"flex", gap:6, flex:1 }}>
+          {["all","work","life"].map(ctx=>{
+            const active = contextF===ctx;
+            return (
+              <button key={ctx} onClick={()=>setContextF(ctx)}
+                style={{ background: active ? C.bg3 : "transparent",
+                  color: active ? C.text : C.textMuted,
+                  border:`1px solid ${active?C.borderHi:C.border}`,
+                  borderRadius:18, padding:"6px 14px", cursor:"pointer",
+                  fontSize:11, fontWeight:800, fontFamily:"inherit",
+                  boxShadow: active ? "0 2px 10px rgba(0,0,0,.3)" : "none",
+                  transition:"all .15s" }}>
+                {ctx==="all"?"All":ctx==="work"?"🔥 Work":"🏡 Personal"}
+              </button>
+            );
+          })}
+        </div>
+
+        <Btn onClick={()=>setEditing(blank)} variant="primary" size="lg"><span style={{fontSize:20,lineHeight:1}}>＋</span><span style={{marginLeft:4}}>Add Person</span></Btn>
+      </div>
+
+      {/* Grid */}
+      {filtered.length===0 ? (
+        <div style={{ textAlign:"center", padding:"70px 20px" }}>
+          <div style={{ fontSize:64, marginBottom:16, letterSpacing:8 }}>🔥⚡🙏</div>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700,
+              fontSize:22, color:C.textSub, letterSpacing:.5, marginBottom:12 }}>
+            {people.length===0 ? "No people added yet." : "No matches found."}
+          </div>
+          {people.length===0 && (
+            <>
+              <div style={{ fontSize:13, color:C.textMuted, maxWidth:380, margin:"0 auto 24px",
+                  lineHeight:1.7 }}>
+                Start building your people intelligence. Score anyone you work with or live around on Drive, Ability, and Humility — then get personalized coaching on how to lead and work with them.
+              </div>
+              <Btn onClick={()=>setEditing(blank)} variant="primary" size="lg"><span style={{fontSize:22,lineHeight:1}}>＋</span><span style={{marginLeft:5}}>Add Your First Person</span></Btn>
+            </>
+          )}
+        </div>
+      ) : (
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(275px,1fr))", gap:14 }}>
+          {filtered.map(p=>(
+            <PersonCard key={p.id} person={p}
+              onView={setViewing} onEdit={setEditing} onDelete={setDelPending}/>
+          ))}
+        </div>
+      )}
+
+      {editing    && <PersonModal person={editing} onSave={savePerson} onClose={()=>setEditing(null)}/>}
+      {viewing    && <PersonDetail person={viewing} onClose={()=>setViewing(null)} onEdit={p=>{setViewing(null);setEditing(p);}}/>}
+      {delPending && <Confirm msg={`Remove ${delPending.name} from your list? This can't be undone.`}
+          yesLabel="Remove" yesVariant="danger"
+          onYes={()=>deletePerson(delPending.id)} onNo={()=>setDelPending(null)}/>}
+    </div>
+  );
+}
+
+// ─── REFERENCE TAB ────────────────────────────────────────────────────────────
+function ReferenceTab() {
+  const [openTrait, setOpenTrait] = useState(null);
+  const [openCombo, setOpenCombo] = useState(null);
+
+  return (
+    <div style={{ padding:18 }}>
+
+      {/* Book card */}
+      <div style={{ background:`linear-gradient(145deg,${C.bg2} 0%,${C.bg1} 100%)`,
+          border:`1px solid ${C.borderHi}`, borderRadius:16, padding:"22px 24px", marginBottom:22,
+          boxShadow:`0 4px 30px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.04)` }}>
+        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:26,
+            color:C.gold, letterSpacing:1.5, marginBottom:4, lineHeight:1 }}>
+          THE IRREDUCIBLE COMPLEXITY FOR SUCCESS
+        </div>
+        <div style={{ fontSize:11, color:C.textMuted, fontWeight:700, letterSpacing:1.5,
+            textTransform:"uppercase", marginBottom:16 }}>
+          Danny Cancino &nbsp;·&nbsp; A 45 Minute Read
+        </div>
+        <div style={{ fontSize:13, color:C.textSub, lineHeight:1.75, marginBottom:16 }}>
+          A framework born from 30 years of observing people across the fire service, military, coaching, and everyday life. The core insight: success has three irreducible parts. Remove any one and the whole thing collapses — just like pulling one leg off the fire triangle.
+        </div>
+
+        {/* The three words */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:16 }}>
+          {Object.values(TRAITS).map(t=>(
+            <div key={t.key} style={{ background:`linear-gradient(135deg,${t.bg},${C.bg0})`,
+                border:`1px solid ${t.borderHi}`, borderRadius:10, padding:"12px 14px",
+                boxShadow:`0 0 16px ${t.color}15` }}>
+              <div style={{ fontSize:32, marginBottom:8, lineHeight:1 }}>{t.icon}</div>
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900,
+                  fontSize:18, color:t.color, letterSpacing:.5, lineHeight:1 }}>{t.label}</div>
+              <div style={{ fontSize:11, color:C.textMuted, marginTop:4, fontStyle:"italic",
+                  lineHeight:1.4 }}>"{t.tagline}"</div>
+            </div>
+          ))}
+        </div>
+
+        {/* The keystone quote */}
+        <div style={{ background:`linear-gradient(135deg,${C.goldBg},${C.bg0})`,
+            border:`1px solid ${C.goldBorder}`, borderLeft:`4px solid ${C.gold}`,
+            borderRadius:10, padding:"14px 18px" }}>
+          <div style={{ fontSize:15, color:C.gold, fontStyle:"italic", lineHeight:1.65,
+              fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:17 }}>
+            "These three characteristics of drive, ability, and humility always seem to be there in success and missing in failure. It seems to be irreducible."
+          </div>
+          <div style={{ fontSize:11, color:C.goldDim, marginTop:8, fontWeight:700,
+              letterSpacing:.8, textTransform:"uppercase" }}>
+            — Danny Cancino
+          </div>
+        </div>
+      </div>
+
+      {/* The 3 Traits */}
+      <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:20,
+          letterSpacing:1.5, color:C.text, marginBottom:12 }}>THE 3 TRAITS</div>
+
+      <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:26 }}>
+        {Object.values(TRAITS).map(t=>{
+          const open = openTrait===t.key;
+          return (
+            <div key={t.key} onClick={()=>setOpenTrait(open?null:t.key)}
+              style={{ background: open
+                    ? `linear-gradient(145deg,${t.bg} 0%,${C.bg0} 100%)`
+                    : `linear-gradient(135deg,${C.bg1},${C.bg0})`,
+                border:`2px solid ${open?t.color:t.border}`,
+                borderRadius:13, overflow:"hidden", cursor:"pointer",
+                boxShadow: open ? `0 6px 30px ${t.color}20, 0 0 0 1px ${t.borderHi}` : "0 2px 10px rgba(0,0,0,.3)",
+                transition:"all .22s cubic-bezier(.22,1,.36,1)" }}>
+
+              <div style={{ padding:"15px 18px", display:"flex", alignItems:"center", gap:12 }}>
+                <div style={{ width:46, height:46, borderRadius:"50%",
+                    background:`radial-gradient(circle at 35% 35%,${t.bgMid},${t.bg})`,
+                    border:`2px solid ${t.borderHi}`, display:"flex",
+                    alignItems:"center", justifyContent:"center", flexShrink:0,
+                    boxShadow:`0 0 16px ${t.color}30` }}>
+                  <span style={{ fontSize:22 }}>{t.icon}</span>
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900,
+                      fontSize:22, color:t.color, letterSpacing:.5 }}>{t.label}</div>
+                  <div style={{ fontSize:12, color:C.textMuted, fontStyle:"italic",
+                      marginTop:2 }}>"{t.tagline}"</div>
+                </div>
+                <div style={{ fontSize:11, color:C.textMuted, fontWeight:600 }}>
+                  {open?"▲":"▼"}
+                </div>
+              </div>
+
+              {open && (
+                <div className="fade-up" style={{ borderTop:`1px solid ${t.border}`,
+                    padding:"16px 18px" }}>
+
+                  {/* Quote */}
+                  <div style={{ background:`rgba(0,0,0,.4)`, border:`1px solid ${t.border}`,
+                      borderLeft:`4px solid ${t.color}`, borderRadius:9,
+                      padding:"12px 16px", marginBottom:16,
+                      fontStyle:"italic", fontSize:14, color:t.text, lineHeight:1.65,
+                      fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:16 }}>
+                    "{t.quote}"
+                    <div style={{ fontSize:12, color:C.textMuted, marginTop:6, fontWeight:700,
+                        letterSpacing:.8, textTransform:"uppercase", fontStyle:"normal",
+                        fontFamily:"'DM Sans',sans-serif" }}>— Danny Cancino</div>
+                  </div>
+
+                  <div style={{ fontSize:13, color:C.textSub, lineHeight:1.75, marginBottom:16 }}>
+                    {t.bookDesc}
+                  </div>
+
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:16 }}>
+                    <div style={{ background:"rgba(0,0,0,.3)", border:`1px solid ${t.border}`,
+                        borderRadius:9, padding:"11px 13px" }}>
+                      <div style={{ fontSize:11, fontWeight:700, color:t.color, textTransform:"uppercase",
+                          letterSpacing:1.3, marginBottom:8 }}>Signs They Have It</div>
+                      {t.hasIt.map((s,i)=>(
+                        <div key={i} style={{ fontSize:11, color:C.textSub, lineHeight:1.5,
+                            marginBottom:5, display:"flex", gap:7 }}>
+                          <span style={{ color:t.color, fontWeight:800 }}>→</span>{s}
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ background:"rgba(0,0,0,.3)", border:"1px solid #7f1d1d",
+                        borderRadius:9, padding:"11px 13px" }}>
+                      <div style={{ fontSize:11, fontWeight:700, color:"#ef4444", textTransform:"uppercase",
+                          letterSpacing:1.3, marginBottom:8 }}>Signs They're Missing It</div>
+                      {t.lacksIt.map((s,i)=>(
+                        <div key={i} style={{ fontSize:11, color:C.textSub, lineHeight:1.5,
+                            marginBottom:5, display:"flex", gap:7 }}>
+                          <span style={{ color:"#ef4444", fontWeight:800 }}>–</span>{s}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize:12, fontWeight:700, color:C.textSub, textTransform:"uppercase",
+                      letterSpacing:1.4, marginBottom:9 }}>How to Bring It Out</div>
+                  {t.bringOut.map((item,i)=>(
+                    <div key={i} style={{ background:"rgba(0,0,0,.35)",
+                        border:`1px solid ${t.border}`, borderLeft:`3px solid ${t.color}`,
+                        borderRadius:9, padding:"10px 13px", marginBottom:7 }}>
+                      <div style={{ fontSize:12, fontWeight:700, color:t.color, marginBottom:4 }}>
+                        {item.title}
+                      </div>
+                      <div style={{ fontSize:11, color:C.textMuted, lineHeight:1.65 }}>{item.body}</div>
+                    </div>
+                  ))}
+
+                  <div style={{ background:`linear-gradient(135deg,${t.bgMid},${C.bg0})`,
+                      border:`1px solid ${t.borderHi}`, borderRadius:9,
+                      padding:"11px 14px", marginTop:10, display:"flex", gap:10 }}>
+                    <span style={{ fontSize:20 }}>🎭</span>
+                    <div>
+                      <div style={{ fontSize:12, fontWeight:700, color:t.color, marginBottom:3 }}>
+                        Archetype: {t.archetype}
+                      </div>
+                      <div style={{ fontSize:11, color:C.textMuted, lineHeight:1.5 }}>{t.archetypeDesc}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Chapter 4 combos */}
+      <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:20,
+          letterSpacing:1.5, color:C.text, marginBottom:6 }}>
+        CHAPTER 4 — THE 7 COMBINATIONS
+      </div>
+      <div style={{ fontSize:12, color:C.textMuted, marginBottom:14, lineHeight:1.65 }}>
+        Danny shows every possible combination of the three traits through real TV and movie characters. Click any to expand.
+      </div>
+
+      <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:24 }}>
+        {COMBOS.map(combo=>{
+          const open = openCombo===combo.id;
+          return (
+            <div key={combo.id} onClick={()=>setOpenCombo(open?null:combo.id)}
+              style={{ background: open
+                    ? `linear-gradient(145deg,${combo.bg} 0%,${C.bg0} 100%)`
+                    : `linear-gradient(135deg,${C.bg1},${C.bg0})`,
+                border:`2px solid ${open?combo.color:combo.border}`,
+                borderRadius:12, overflow:"hidden", cursor:"pointer",
+                boxShadow: open ? `0 4px 24px ${combo.color}20` : "0 2px 8px rgba(0,0,0,.3)",
+                transition:"all .2s cubic-bezier(.22,1,.36,1)" }}>
+
+              <div style={{ padding:"13px 16px", display:"flex", alignItems:"center", gap:11 }}>
+                <span style={{ fontSize:24 }}>{combo.icon}</span>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
+                      fontSize:17, color:combo.color, letterSpacing:.5 }}>{combo.label}</div>
+                  <div style={{ fontSize:11, color:C.textMuted, marginTop:2 }}>
+                    {combo.has?.map(k=>TRAITS[k]?.icon+TRAITS[k]?.label).join(" + ")||"🔥⚡🙏 All Three"}
+                    {combo.lacks?.length ? ` · Missing ${combo.lacks.map(k=>TRAITS[k]?.label).join(" + ")}` : ""}
+                  </div>
+                </div>
+                <div style={{ fontSize:11, color:C.textMuted }}>{open?"▲":"▼"}</div>
+              </div>
+
+              {open && (
+                <div className="fade-up" style={{ borderTop:`1px solid ${combo.border}`,
+                    padding:"15px 16px" }}>
+                  <div style={{ fontSize:13, color:C.textSub, lineHeight:1.75, marginBottom:13 }}>
+                    {combo.desc}
+                  </div>
+                  <div style={{ background:"rgba(0,0,0,.3)", border:`1px solid ${combo.border}`,
+                      borderLeft:`3px solid ${combo.color}`, borderRadius:9,
+                      padding:"12px 14px", marginBottom:10 }}>
+                    <div style={{ fontSize:12, fontWeight:700, color:combo.color, textTransform:"uppercase",
+                        letterSpacing:1.3, marginBottom:7 }}>How to Lead & Work With This Person</div>
+                    <div style={{ fontSize:13, color:C.textSub, lineHeight:1.7 }}>{combo.how}</div>
+                  </div>
+                  <div style={{ fontSize:11, color:C.textMuted, fontStyle:"italic" }}>
+                    📖 {combo.bookRef} — Characters like {combo.character}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Danny's closing */}
+      <div style={{ background:`linear-gradient(145deg,${C.bg2},${C.bg1})`,
+          border:`1px solid ${C.borderHi}`, borderRadius:16, padding:"22px 24px",
+          boxShadow:"0 4px 30px rgba(0,0,0,.5)" }}>
+        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:20,
+            color:C.gold, letterSpacing:1, marginBottom:14 }}>DANNY'S CLOSING WORD</div>
+        <div style={{ fontSize:13, color:C.textSub, lineHeight:1.75, marginBottom:16 }}>
+          "It doesn't matter where you are today. What matters is that you are a better version tomorrow than you were today. Always be growing. Always be learning. Don't stagnate. We need each other. You are a piece — you are not the whole."
+        </div>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:16 }}>
+          {[
+            { q:"You are a piece, you are not the whole.", icon:"🧩" },
+            { q:"Let who they are make you a better version of who you are.", icon:"🪞" },
+          ].map((item,i)=>(
+            <div key={i} style={{ background:C.goldBg, border:`1px solid ${C.goldBorder}`,
+                borderLeft:`3px solid ${C.gold}`, borderRadius:9, padding:"11px 14px" }}>
+              <div style={{ fontSize:20, marginBottom:6 }}>{item.icon}</div>
+              <div style={{ fontSize:12, color:C.gold, fontStyle:"italic", lineHeight:1.6 }}>
+                "{item.q}"
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ background:C.bg0, border:`1px solid ${C.borderHi}`, borderRadius:12,
+            padding:"18px 22px", textAlign:"center",
+            boxShadow:"inset 0 2px 20px rgba(0,0,0,.4)" }}>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900, fontSize:32,
+              color:C.gold, letterSpacing:4, textShadow:`0 0 30px ${C.gold}50` }}>
+            BE COACHABLE.
+          </div>
+          <div style={{ fontSize:12, color:C.textMuted, marginTop:6 }}>
+            The whole point. That's the whole it. — Danny Cancino
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── ROOT APP ─────────────────────────────────────────────────────────────────
+function App() {
+  const [tab,    setTab]    = useState("people");
+  const [people, setPeople] = useState(()=>load("ic_people_v1",[]));
+
+  function handlePeople(p) { setPeople(p); save("ic_people_v1",p); }
+
+  const TABS = [
+    { id:"people", label:"👥 My People",    count:people.length },
+    { id:"ref",    label:"📖 The Framework", count:null },
+  ];
+
+  return (
+    <div style={S.app}>
+      <GlobalStyles/>
+
+      {/* Header */}
+      <div style={S.hdr}>
+        {/* Brand */}
+        <div style={{ flexShrink:0 }}>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900,
+              fontSize:20, letterSpacing:3, color:C.gold, lineHeight:1,
+              textShadow:`0 0 24px ${C.gold}60` }}>
+            IRREDUCIBLE
+          </div>
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:C.textMuted,
+              letterSpacing:2.5, textTransform:"uppercase", marginTop:1 }}>
+            Complexity · People Intelligence
+          </div>
+        </div>
+
+        {/* Trait pills */}
+        <div style={{ display:"flex", gap:6, flexShrink:0 }}>
+          {Object.values(TRAITS).map(t=>(
+            <div key={t.key} style={{ background:`linear-gradient(135deg,${t.bg},${C.bg0})`,
+                border:`1px solid ${t.border}`, borderRadius:7,
+                padding:"4px 11px", display:"flex", alignItems:"center", gap:5,
+                boxShadow:`0 0 10px ${t.color}15` }}>
+              <span style={{ fontSize:18 }}>{t.icon}</span>
+              <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:800,
+                  fontSize:12, color:t.color, letterSpacing:.8 }}>{t.label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Nav */}
+        <nav style={{ display:"flex", gap:6, flex:1, marginLeft:10 }}>
+          {TABS.map(t=>{
+            const active = tab===t.id;
+            return (
+              <button key={t.id} onClick={()=>setTab(t.id)}
+                style={{ background: active
+                      ? "linear-gradient(135deg,#c47d0a,#9a5f08)"
+                      : `linear-gradient(135deg,${C.bg2},${C.bg1})`,
+                  color: active ? "#fff" : C.textSub,
+                  border:`1px solid ${active?"#f0b429":C.border}`,
+                  borderRadius:9, padding:"9px 20px", cursor:"pointer",
+                  fontSize:13, fontWeight:800, letterSpacing:.3,
+                  fontFamily:"inherit",
+                  boxShadow: active
+                    ? `0 4px 20px ${C.gold}50, 0 0 0 1px #f0b42960, inset 0 1px 0 rgba(255,255,255,.2)`
+                    : `0 2px 8px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.04)`,
+                  transform: active ? "translateY(-1px)" : "translateY(0)",
+                  transition:"all .18s cubic-bezier(.22,1,.36,1)",
+                  display:"flex", alignItems:"center", gap:7 }}>
+                <span style={{fontSize:18,lineHeight:1,marginRight:2}}>{t.label.split(' ')[0]}</span><span>{t.label.split(' ').slice(1).join(' ')}</span>
+                {t.count!==null && (
+                  <span style={{ background: active?"rgba(0,0,0,.25)":C.bg0,
+                      color: active?"#fff":C.textMuted, borderRadius:10,
+                      padding:"1px 8px", fontSize:11, fontWeight:800 }}>
+                    {t.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div style={{ fontSize:12, color:C.textMuted, flexShrink:0,
+            fontFamily:"'DM Mono',monospace", letterSpacing:.5 }}>
+          Danny Cancino
+        </div>
+      </div>
+
+      {/* Tab content */}
+      <div style={{ display:tab==="people"?"block":"none" }}>
+        <PeopleTab people={people} setPeople={handlePeople}/>
+      </div>
+      <div style={{ display:tab==="ref"?"block":"none" }}>
+        <ReferenceTab/>
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(React.createElement(App));
+</script>
+</body>
+</html>
