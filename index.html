@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Irreducible Complexity — People Decoder</title>
+<title>Irreducible Complexity — People Decoder · Mastery Version</title>
 <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
@@ -114,7 +115,7 @@ const COMBOS = [
   { id:"DAH", has:["D","A","H"],
     label:"All Three", icon:"🏆", bookRef:"The Full Equation",
     desc:"This is the whole point of the book. The irreducible complexity — all three working together. Warren the London Cab Driver: 3 years of 6am maps, dad's garage until 5pm, drawing routes until 10pm. Then doing it again the next day. For the love of the craft. This is who you champion for promotion and invest in hardest.",
-    color:"#f0b429", bg:"#110d00", border:"#7c5e0a", borderHi:"#b8860b",
+    color:"#F9D000", bg:"#110d00", border:"#7a6500", borderHi:"#b89900",
     how:"Get out of their way. Give them a worthy challenge. Invest in them heavily — they will multiply it back into the team. This is the person Danny wrote the book hoping to describe.",
     character:"Warren the London Cab Driver" },
   { id:"DH", has:["D","H"], lacks:["A"],
@@ -187,13 +188,77 @@ body::before {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
   opacity: 0.4;
 }
+
+/* ── RESPONSIVE ─────────────────────────────────────────────── */
+
+/* Header: collapse trait pills on small screens */
+.hdr-pills { display: flex; gap: 6px; flex-shrink: 0; }
+@media (max-width: 640px) {
+  .hdr-pills { display: none; }
+}
+
+/* Header: tighter on mobile */
+@media (max-width: 480px) {
+  .hdr-brand-sub { display: none; }
+  .hdr-author    { display: none; }
+}
+
+/* Nav tabs in header: shrink text on mobile */
+@media (max-width: 480px) {
+  span.nav-label { display: none; }
+}
+
+/* People grid: single column on small mobile */
+@media (max-width: 380px) {
+  .people-grid { grid-template-columns: 1fr !important; }
+}
+
+/* PersonDetail modal hero score row: wrap on tiny screens */
+@media (max-width: 400px) {
+  .detail-score-row { flex-wrap: wrap; }
+  .detail-score-row > * { min-width: 80px; }
+}
+
+/* Trait score selector: smaller buttons on mobile */
+@media (max-width: 400px) {
+  .score-btn { padding: 7px 2px !important; font-size: 10px !important; }
+  .score-btn .score-icon { font-size: 12px !important; }
+}
+
+/* Add/Edit modal: stack name + context fields on mobile */
+@media (max-width: 480px) {
+  .person-form-top { flex-direction: column !important; }
+  .person-form-top > * { flex: none !important; width: 100% !important; }
+}
+
+/* Reference tab: 1-col trait grid on mobile */
+@media (max-width: 480px) {
+  .ref-trait-grid { grid-template-columns: 1fr !important; }
+}
+
+/* Controls bar: full-width search on mobile */
+@media (max-width: 540px) {
+  .controls-bar { flex-direction: column; align-items: stretch !important; }
+  .controls-bar input { width: 100% !important; }
+  .controls-bar .filter-pills { justify-content: flex-start; }
+  .controls-bar .add-btn { align-self: flex-start; }
+}
+
+/* Stats grid: auto-fit min 100px */
+@media (max-width: 400px) {
+  .stats-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)) !important; }
+}
+
+/* PersonModal detail tabs: allow horizontal scroll */
+.detail-tabs-row { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.detail-tabs-row::-webkit-scrollbar { display: none; }
 `;
 
 const C = {
   bg0:"#080c12", bg1:"#0e1420", bg2:"#141c2a", bg3:"#1c2638", bg4:"#243044",
   border:"#1e2d42", borderHi:"#2a3d58", borderBright:"#3a5070",
   text:"#f2f7fd", textSub:"#9db5cc", textMuted:"#6a8faa",
-  gold:"#f0b429", goldDim:"#7c5e0a", goldBg:"#120d02", goldBorder:"#4a3808",
+  gold:"#F9D000", goldDim:"#7a6500", goldBg:"#131000", goldBorder:"#4a3c00",
   green:"#34d399", greenDim:"#022c1e", greenBorder:"#065f46",
   red:"#fb7185", redBorder:"#9f1239",
 };
@@ -201,9 +266,9 @@ const C = {
 const S = {
   app:  { fontFamily:"'DM Sans',system-ui,sans-serif", background:C.bg0, minHeight:"100vh", color:C.text, fontSize:14 },
   hdr:  { background:`linear-gradient(180deg,${C.bg2} 0%,${C.bg1} 100%)`,
-          borderBottom:`1px solid ${C.border}`, padding:"0 24px",
-          display:"flex", alignItems:"center", gap:16, height:68,
-          position:"sticky", top:0, zIndex:300,
+          borderBottom:`1px solid ${C.border}`, padding:"0 14px",
+          display:"flex", alignItems:"center", gap:10, minHeight:60,
+          position:"sticky", top:0, zIndex:300, overflow:"hidden",
           boxShadow:`0 1px 0 ${C.border}, 0 4px 32px rgba(0,0,0,.6)` },
   card: { background:C.bg1, border:`1px solid ${C.border}`, borderRadius:14, padding:18 },
   input:{ background:C.bg0, border:`1px solid ${C.border}`, borderRadius:9, color:C.text,
@@ -220,10 +285,10 @@ function Btn({ children, onClick, variant="secondary", size="md", disabled=false
   const [hov, setHov] = useState(false);
   const V = {
     primary: {
-      bg: hov ? "linear-gradient(135deg,#f0b429,#d4960f)" : "linear-gradient(135deg,#d4960f,#b07a08)",
-      color:"#0a0800", border:"#f0b429",
-      shadow: hov ? "0 6px 28px #f0b42970, 0 0 0 1px #f0b429, inset 0 1px 0 #ffffff40"
-                  : "0 4px 20px #f0b42950, 0 0 0 1px #c49010, inset 0 1px 0 #ffffff30",
+      bg: hov ? "linear-gradient(135deg,#F9D000,#e0bc00)" : "linear-gradient(135deg,#e0bc00,#c4a500)",
+      color:"#0a0800", border:"#F9D000",
+      shadow: hov ? "0 6px 28px #F9D00070, 0 0 0 1px #F9D000, inset 0 1px 0 #ffffff40"
+                  : "0 4px 20px #F9D00050, 0 0 0 1px #c4a500, inset 0 1px 0 #ffffff30",
       transform: hov ? "translateY(-2px)" : "translateY(0)",
     },
     danger: {
@@ -332,15 +397,15 @@ function Confirm({ msg, onYes, onNo, yesLabel="Confirm", yesVariant="danger" }) 
 }
 
 // ─── SCORE SYSTEM ─────────────────────────────────────────────────────────────
-const SCORE_LABELS = ["Missing","Emerging","Developing","Strong"];
-const SCORE_ICONS  = ["❌","🌱","📈","✅"];
-const SCORE_COLORS = ["#ef4444","#f59e0b","#3b82f6","#22c55e"];
-const SCORE_BGS    = ["#1a0202","#1a0e00","#020a1a","#011008"];
+const SCORE_LABELS = ["Missing","Emerging","Developing","Strong","Mastery"];
+const SCORE_ICONS  = ["❌","🌱","📈","✅","🏆"];
+const SCORE_COLORS = ["#ef4444","#f59e0b","#3b82f6","#22c55e","#F9D000"];
+const SCORE_BGS    = ["#1a0202","#1a0e00","#020a1a","#011008","#110d00"];
 
 function ScorePip({ score, size=10 }) {
   return (
-    <span style={{ display:"inline-flex", alignItems:"center", gap:4 }}>
-      {[0,1,2,3].map(i => (
+    <span style={{ display:"inline-flex", alignItems:"center", gap:3 }}>
+      {[0,1,2,3,4].map(i => (
         <span key={i} style={{ width:size, height:size, borderRadius:"50%",
             background: i<=score ? SCORE_COLORS[score] : C.bg3,
             border:`1px solid ${i<=score ? SCORE_COLORS[score] : C.border}`,
@@ -368,21 +433,21 @@ function ScoreBadge({ score, small }) {
 function TraitScoreSelector({ traitKey, value, onChange }) {
   const t = TRAITS[traitKey];
   return (
-    <div style={{ display:"flex", gap:6 }}>
+    <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
       {SCORE_LABELS.map((lbl,i) => {
         const sel = value===i;
         const c   = SCORE_COLORS[i];
         return (
           <button key={i} onClick={()=>onChange(i)}
-            style={{ flex:1, padding:"9px 4px", borderRadius:8, cursor:"pointer",
-              fontFamily:"inherit", fontWeight:800, fontSize:11, letterSpacing:.3,
+            style={{ flex:"1 1 18%", minWidth:0, padding:"8px 3px", borderRadius:8, cursor:"pointer",
+              fontFamily:"inherit", fontWeight:800, fontSize:10, letterSpacing:.2,
               background: sel ? `linear-gradient(135deg,${c}30,${c}18)` : "transparent",
               color: sel ? c : C.textMuted,
               border:`2px solid ${sel ? c : C.border}`,
               boxShadow: sel ? `0 0 14px ${c}40, inset 0 1px 0 ${c}20` : "none",
               transition:"all .15s cubic-bezier(.22,1,.36,1)",
               transform: sel ? "translateY(-1px)" : "translateY(0)" }}>
-            <span style={{fontSize:14,display:"block",marginBottom:2}}>{SCORE_ICONS[i]}</span>{lbl}
+            <span style={{fontSize:13,display:"block",marginBottom:2}}>{SCORE_ICONS[i]}</span>{lbl}
           </button>
         );
       })}
@@ -572,7 +637,6 @@ function PersonDetail({ person, onClose, onEdit }) {
         <div style={{ display:"flex", gap:8, marginBottom:14 }}>
           {Object.entries(person.scores).map(([k,v]) => {
             const t = TRAITS[k];
-            const c = SCORE_COLORS[v];
             return (
               <div key={k} style={{ flex:1, background:`${t.bg}cc`, border:`1px solid ${t.border}`,
                   borderRadius:10, padding:"9px 10px", textAlign:"center" }}>
@@ -605,7 +669,7 @@ function PersonDetail({ person, onClose, onEdit }) {
       </div>
 
       {/* Tabs */}
-      <div style={{ display:"flex", gap:5, marginBottom:18,
+      <div className="detail-tabs-row" style={{ display:"flex", gap:5, marginBottom:18,
           borderBottom:`1px solid ${C.border}`, paddingBottom:14 }}>
         {TABS.map(t => {
           const active = tab===t.id;
@@ -642,18 +706,19 @@ function PersonDetail({ person, onClose, onEdit }) {
           {Object.entries(person.scores).map(([k,v]) => {
             const t = TRAITS[k];
             const showHas = v>=2;
-            const c = SCORE_COLORS[v];
+            const isMastery = v===4;
             return (
-              <div key={k} style={{ marginBottom:14, background:C.bg0, border:`1px solid ${t.border}`,
-                  borderRadius:11, overflow:"hidden" }}>
-                <div style={{ background:`linear-gradient(135deg,${t.bg},${C.bg0}80)`,
-                    borderBottom:`1px solid ${t.border}`, padding:"10px 15px",
+              <div key={k} style={{ marginBottom:14, background:C.bg0, border:`1px solid ${isMastery ? C.goldBorder : t.border}`,
+                  borderRadius:11, overflow:"hidden",
+                  boxShadow: isMastery ? `0 0 18px ${C.gold}20` : "none" }}>
+                <div style={{ background:`linear-gradient(135deg,${isMastery ? C.goldBg : t.bg},${C.bg0}80)`,
+                    borderBottom:`1px solid ${isMastery ? C.goldBorder : t.border}`, padding:"10px 15px",
                     display:"flex", alignItems:"center", justifyContent:"space-between" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:9 }}>
                     <span style={{ fontSize:20 }}>{t.icon}</span>
                     <div>
                       <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontWeight:900,
-                          fontSize:16, color:t.color, letterSpacing:.5 }}>{t.label}</span>
+                          fontSize:16, color:isMastery ? C.gold : t.color, letterSpacing:.5 }}>{t.label}</span>
                       <span style={{ fontSize:11, color:C.textMuted, marginLeft:8,
                           fontStyle:"italic" }}>"{t.tagline}"</span>
                     </div>
@@ -661,9 +726,9 @@ function PersonDetail({ person, onClose, onEdit }) {
                   <ScoreBadge score={v}/>
                 </div>
                 <div style={{ padding:"12px 15px" }}>
-                  <div style={{ fontSize:12, fontWeight:700, color: showHas?t.color:"#ef4444",
+                  <div style={{ fontSize:12, fontWeight:700, color: isMastery ? C.gold : showHas ? t.color : "#ef4444",
                       textTransform:"uppercase", letterSpacing:1.3, marginBottom:8 }}>
-                    {showHas ? "Signs you're seeing in them ✓" : "Signs you're seeing instead ⚠"}
+                    {isMastery ? "🏆 Mastery Level — Warren the Cab Driver ✓" : showHas ? "Signs you're seeing in them ✓" : "Signs you're seeing instead ⚠"}
                   </div>
                   <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
                     {(showHas?t.hasIt:t.lacksIt).slice(0,4).map((s,i) => (
@@ -746,8 +811,8 @@ function PersonDetail({ person, onClose, onEdit }) {
               borderRadius:10, padding:"14px 16px" }}>
             <div style={{ fontSize:11, fontWeight:700, color:C.goldDim, textTransform:"uppercase",
                 letterSpacing:1.5, marginBottom:6 }}>Danny's Closing Word</div>
-            <div style={{ fontSize:14, color:C.gold, fontStyle:"italic", lineHeight:1.65,
-                fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:17 }}>
+            <div style={{ fontSize:17, color:C.gold, fontStyle:"italic", lineHeight:1.65,
+                fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700 }}>
               "Motivation cannot be forced. It can only be cultivated."
             </div>
           </div>
@@ -850,7 +915,7 @@ function PersonModal({ person, onSave, onClose }) {
     <Modal title={person.id ? `Edit: ${person.name}` : "Add Person"} onClose={onClose} width={520}>
       <div style={{ display:"flex", flexDirection:"column", gap:18 }}>
 
-        <div style={{ display:"flex", gap:12 }}>
+        <div className="person-form-top" style={{ display:"flex", gap:12 }}>
           <div style={{ flex:2 }}>
             <label style={S.lbl}>Full Name *</label>
             <input style={S.input} value={name} onChange={e=>setName(e.target.value)}
@@ -994,7 +1059,7 @@ function PeopleTab({ people, setPeople }) {
 
       {/* Stats hero */}
       {people.length>0 && (
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(120px,1fr))", gap:10, marginBottom:18 }}>
+        <div className="stats-grid" style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(120px,1fr))", gap:10, marginBottom:18 }}>
           {[
             { label:"Total", val:stats.total, color:C.gold, sub:"people" },
             { label:"All Three", val:stats.all3, color:SCORE_COLORS[3], sub:"full equation" },
@@ -1015,7 +1080,7 @@ function PeopleTab({ people, setPeople }) {
       )}
 
       {/* Controls */}
-      <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap", marginBottom:16 }}>
+      <div className="controls-bar" style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap", marginBottom:16 }}>
         <input style={{ ...S.input, width:210,
             boxShadow:"inset 0 2px 6px rgba(0,0,0,.3)" }}
           placeholder="Search name or role..."
@@ -1063,7 +1128,7 @@ function PeopleTab({ people, setPeople }) {
           )}
         </div>
       ) : (
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(275px,1fr))", gap:14 }}>
+        <div className="people-grid" style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(275px,1fr))", gap:14 }}>
           {filtered.map(p=>(
             <PersonCard key={p.id} person={p}
               onView={setViewing} onEdit={setEditing} onDelete={setDelPending}/>
@@ -1105,7 +1170,7 @@ function ReferenceTab() {
         </div>
 
         {/* The three words */}
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:16 }}>
+        <div className="ref-trait-grid" style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:16 }}>
           {Object.values(TRAITS).map(t=>(
             <div key={t.key} style={{ background:`linear-gradient(135deg,${t.bg},${C.bg0})`,
                 border:`1px solid ${t.borderHi}`, borderRadius:10, padding:"12px 14px",
@@ -1123,8 +1188,8 @@ function ReferenceTab() {
         <div style={{ background:`linear-gradient(135deg,${C.goldBg},${C.bg0})`,
             border:`1px solid ${C.goldBorder}`, borderLeft:`4px solid ${C.gold}`,
             borderRadius:10, padding:"14px 18px" }}>
-          <div style={{ fontSize:15, color:C.gold, fontStyle:"italic", lineHeight:1.65,
-              fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:17 }}>
+          <div style={{ fontSize:17, color:C.gold, fontStyle:"italic", lineHeight:1.65,
+              fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700 }}>
             "These three characteristics of drive, ability, and humility always seem to be there in success and missing in failure. It seems to be irreducible."
           </div>
           <div style={{ fontSize:11, color:C.goldDim, marginTop:8, fontWeight:700,
@@ -1178,8 +1243,8 @@ function ReferenceTab() {
                   <div style={{ background:`rgba(0,0,0,.4)`, border:`1px solid ${t.border}`,
                       borderLeft:`4px solid ${t.color}`, borderRadius:9,
                       padding:"12px 16px", marginBottom:16,
-                      fontStyle:"italic", fontSize:14, color:t.text, lineHeight:1.65,
-                      fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700, fontSize:16 }}>
+                      fontStyle:"italic", fontSize:16, color:t.text, lineHeight:1.65,
+                      fontFamily:"'Barlow Condensed',sans-serif", fontWeight:700 }}>
                     "{t.quote}"
                     <div style={{ fontSize:12, color:C.textMuted, marginTop:6, fontWeight:700,
                         letterSpacing:.8, textTransform:"uppercase", fontStyle:"normal",
@@ -1190,7 +1255,7 @@ function ReferenceTab() {
                     {t.bookDesc}
                   </div>
 
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:16 }}>
+                  <div className="ref-trait-grid" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:16 }}>
                     <div style={{ background:"rgba(0,0,0,.3)", border:`1px solid ${t.border}`,
                         borderRadius:9, padding:"11px 13px" }}>
                       <div style={{ fontSize:11, fontWeight:700, color:t.color, textTransform:"uppercase",
@@ -1313,7 +1378,7 @@ function ReferenceTab() {
         <div style={{ fontSize:13, color:C.textSub, lineHeight:1.75, marginBottom:16 }}>
           "It doesn't matter where you are today. What matters is that you are a better version tomorrow than you were today. Always be growing. Always be learning. Don't stagnate. We need each other. You are a piece — you are not the whole."
         </div>
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:16 }}>
+        <div className="ref-trait-grid" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:16 }}>
           {[
             { q:"You are a piece, you are not the whole.", icon:"🧩" },
             { q:"Let who they are make you a better version of who you are.", icon:"🪞" },
@@ -1369,13 +1434,14 @@ function App() {
             IRREDUCIBLE
           </div>
           <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:C.textMuted,
-              letterSpacing:2.5, textTransform:"uppercase", marginTop:1 }}>
-            Complexity · People Intelligence
+              letterSpacing:2.5, textTransform:"uppercase", marginTop:1 }}
+              className="hdr-brand-sub">
+            Complexity · Mastery Version
           </div>
         </div>
 
         {/* Trait pills */}
-        <div style={{ display:"flex", gap:6, flexShrink:0 }}>
+        <div className="hdr-pills" style={{ display:"flex", gap:6, flexShrink:0 }}>
           {Object.values(TRAITS).map(t=>(
             <div key={t.key} style={{ background:`linear-gradient(135deg,${t.bg},${C.bg0})`,
                 border:`1px solid ${t.border}`, borderRadius:7,
@@ -1395,23 +1461,23 @@ function App() {
             return (
               <button key={t.id} onClick={()=>setTab(t.id)}
                 style={{ background: active
-                      ? "linear-gradient(135deg,#c47d0a,#9a5f08)"
+                      ? "linear-gradient(135deg,#F9D000,#e0bc00)"
                       : `linear-gradient(135deg,${C.bg2},${C.bg1})`,
-                  color: active ? "#fff" : C.textSub,
-                  border:`1px solid ${active?"#f0b429":C.border}`,
+                  color: active ? "#0a0800" : C.textSub,
+                  border:`1px solid ${active?"#F9D000":C.border}`,
                   borderRadius:9, padding:"9px 20px", cursor:"pointer",
                   fontSize:13, fontWeight:800, letterSpacing:.3,
                   fontFamily:"inherit",
                   boxShadow: active
-                    ? `0 4px 20px ${C.gold}50, 0 0 0 1px #f0b42960, inset 0 1px 0 rgba(255,255,255,.2)`
+                    ? `0 4px 20px ${C.gold}50, 0 0 0 1px #F9D00060, inset 0 1px 0 rgba(255,255,255,.2)`
                     : `0 2px 8px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.04)`,
                   transform: active ? "translateY(-1px)" : "translateY(0)",
                   transition:"all .18s cubic-bezier(.22,1,.36,1)",
                   display:"flex", alignItems:"center", gap:7 }}>
-                <span style={{fontSize:18,lineHeight:1,marginRight:2}}>{t.label.split(' ')[0]}</span><span>{t.label.split(' ').slice(1).join(' ')}</span>
+                <span style={{fontSize:18,lineHeight:1,marginRight:2}}>{t.label.split(' ')[0]}</span><span className="nav-label">{t.label.split(' ').slice(1).join(' ')}</span>
                 {t.count!==null && (
-                  <span style={{ background: active?"rgba(0,0,0,.25)":C.bg0,
-                      color: active?"#fff":C.textMuted, borderRadius:10,
+                  <span style={{ background: active?"rgba(0,0,0,.18)":C.bg0,
+                      color: active?"#0a0800":C.textMuted, borderRadius:10,
                       padding:"1px 8px", fontSize:11, fontWeight:800 }}>
                     {t.count}
                   </span>
@@ -1421,7 +1487,7 @@ function App() {
           })}
         </nav>
 
-        <div style={{ fontSize:12, color:C.textMuted, flexShrink:0,
+        <div className="hdr-author" style={{ fontSize:12, color:C.textMuted, flexShrink:0,
             fontFamily:"'DM Mono',monospace", letterSpacing:.5 }}>
           Danny Cancino
         </div>
